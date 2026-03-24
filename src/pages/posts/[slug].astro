@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Engagement from "../../components/Engagement.astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("posts", ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post }
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<BaseLayout title={`${post.data.title} | 感想`} description={post.data.description}>
+  <article class="article-shell">
+    <p class="eyebrow">{post.data.mood ?? "随笔"}</p>
+    <h1>{post.data.title}</h1>
+    <p class="article-meta">{post.data.publishedAt.toLocaleDateString("zh-CN")}</p>
+    <p class="article-description">{post.data.description}</p>
+
+    <div class="article-body">
+      <Content />
+    </div>
+
+    <Engagement slug={post.id} entryType="post" />
+  </article>
+</BaseLayout>

@@ -1,0 +1,198 @@
+---
+export interface Props {
+  slug: string;
+  entryType: "note" | "post" | "photo";
+}
+
+const { slug, entryType } = Astro.props;
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? "";
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "";
+---
+
+<section
+  class="engagement"
+  data-engagement
+  data-slug={slug}
+  data-entry-type={entryType}
+  data-supabase-url={supabaseUrl}
+  data-supabase-key={supabaseKey}
+>
+  <div class="engagement-topline">
+    <button class="like-button" type="button" data-like-button>点赞</button>
+    <span data-like-count>0 个赞</span>
+  </div>
+
+  <div class="comments">
+    <h2>评论区</h2>
+    <form class="comment-form" data-comment-form>
+      <label>
+        昵称
+        <input name="nickname" type="text" maxlength="24" placeholder="你的名字" required />
+      </label>
+      <label>
+        评论
+        <textarea
+          name="content"
+          rows="4"
+          maxlength="500"
+          placeholder="写下你的想法"
+          required
+        ></textarea>
+      </label>
+      <button type="submit">发布评论</button>
+      <p class="hint">当前是无需登录的 MVP 版本，后续可以升级为 Supabase Auth。</p>
+    </form>
+
+    <div class="comment-list" data-comment-list>
+      <p class="hint">正在加载评论...</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { createClient } from "@supabase/supabase-js";
+
+  const root = document.currentScript?.previousElementSibling as HTMLElement | null;
+
+  if (root instanceof HTMLElement) {
+    const supabaseUrl = root.dataset.supabaseUrl;
+    const supabaseKey = root.dataset.supabaseKey;
+    const slug = root.dataset.slug;
+    const entryType = root.dataset.entryType;
+
+    const likeButton = root.querySelector<HTMLButtonElement>("[data-like-button]");
+    const likeCount = root.querySelector<HTMLElement>("[data-like-count]");
+    const commentForm = root.querySelector<HTMLFormElement>("[data-comment-form]");
+    const commentList = root.querySelector<HTMLElement>("[data-comment-list]");
+
+    if (!supabaseUrl || !supabaseKey || !slug || !entryType) {
+      if (commentList) {
+        commentList.innerHTML =
+          "<p class='hint'>请先配置 PUBLIC_SUPABASE_URL 和 PUBLIC_SUPABASE_ANON_KEY。</p>";
+      }
+    } else {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      const visitorStorageKey = "campus-site-visitor-token";
+      let visitorToken = window.localStorage.getItem(visitorStorageKey);
+
+      if (!visitorToken) {
+        visitorToken = crypto.randomUUID();
+        window.localStorage.setItem(visitorStorageKey, visitorToken);
+      }
+
+      const renderComments = async () => {
+        const { data, error } = await supabase
+          .from("site_comments")
+          .select("nickname, content, created_at")
+          .eq("entry_slug", slug)
+          .eq("entry_type", entryType)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          if (commentList) {
+            commentList.innerHTML = "<p class='hint'>评论加载失败，请检查 Supabase 表和策略。</p>";
+          }
+          return;
+        }
+
+        if (commentList) {
+          if (!data || data.length === 0) {
+            commentList.innerHTML = "<p class='hint'>还没有评论，来写第一条吧。</p>";
+            return;
+          }
+
+          commentList.innerHTML = data
+            .map((comment) => {
+              const createdAt = new Date(comment.created_at).toLocaleString("zh-CN");
+              return `
+                <article class="comment-item">
+                  <div class="comment-head">
+                    <strong>${escapeHtml(comment.nickname)}</strong>
+                    <time>${createdAt}</time>
+                  </div>
+                  <p>${escapeHtml(comment.content)}</p>
+                </article>
+              `;
+            })
+            .join("");
+        }
+      };
+
+      const renderLikes = async () => {
+        const { count } = await supabase
+          .from("site_likes")
+          .select("*", { count: "exact", head: true })
+          .eq("entry_slug", slug)
+          .eq("entry_type", entryType);
+
+        if (likeCount) {
+          likeCount.textContent = `${count ?? 0} 个赞`;
+        }
+      };
+
+      likeButton?.addEventListener("click", async () => {
+        const { data: existing } = await supabase
+          .from("site_likes")
+          .select("id")
+          .eq("entry_slug", slug)
+          .eq("entry_type", entryType)
+          .eq("visitor_token", visitorToken)
+          .maybeSingle();
+
+        if (existing?.id) {
+          await supabase.from("site_likes").delete().eq("id", existing.id);
+          likeButton.textContent = "点赞";
+        } else {
+          await supabase.from("site_likes").insert({
+            entry_slug: slug,
+            entry_type: entryType,
+            visitor_token: visitorToken
+          });
+          likeButton.textContent = "已点赞";
+        }
+
+        await renderLikes();
+      });
+
+      commentForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!commentForm) {
+          return;
+        }
+
+        const formData = new FormData(commentForm);
+        const nickname = String(formData.get("nickname") ?? "").trim();
+        const content = String(formData.get("content") ?? "").trim();
+
+        if (!nickname || !content) {
+          return;
+        }
+
+        const { error } = await supabase.from("site_comments").insert({
+          entry_slug: slug,
+          entry_type: entryType,
+          nickname,
+          content
+        });
+
+        if (!error) {
+          commentForm.reset();
+          await renderComments();
+        }
+      });
+
+      renderLikes();
+      renderComments();
+    }
+  }
+
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+</script>

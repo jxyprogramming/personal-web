@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import { getPublishedCollection } from "../../lib/content";
+
+const posts = await getPublishedCollection("posts");
+---
+
+<BaseLayout title="感想 | Jiangxy Notes" description="一些学习之外的记录和想法。">
+  <section class="section-block">
+    <div class="section-heading">
+      <h1>感想与随笔</h1>
+      <p>写给未来的自己，也写给偶然路过这里的人。</p>
+    </div>
+    <div class="card-grid">
+      {posts.map((post) => (
+        <PostCard
+          href={`/posts/${post.id}`}
+          eyebrow={post.data.mood ?? "随笔"}
+          title={post.data.title}
+          description={post.data.description}
+          meta={post.data.publishedAt.toLocaleDateString("zh-CN")}
+          tags={post.data.tags}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

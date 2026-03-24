@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Engagement from "../../components/Engagement.astro";
+
+export async function getStaticPaths() {
+  const photos = await getCollection("photos", ({ data }) => !data.draft);
+  return photos.map((photo) => ({
+    params: { slug: photo.id },
+    props: { photo }
+  }));
+}
+
+const { photo } = Astro.props;
+const { Content } = await render(photo);
+---
+
+<BaseLayout title={`${photo.data.title} | 照片`} description={photo.data.description}>
+  <article class="article-shell photo-detail">
+    <p class="eyebrow">Photo Story</p>
+    <h1>{photo.data.title}</h1>
+    <p class="article-meta">
+      {photo.data.location ?? "未知地点"} · {photo.data.publishedAt.toLocaleDateString("zh-CN")}
+    </p>
+    <img class="hero-image" src={photo.data.image} alt={photo.data.title} />
+    <div class="article-body">
+      <Content />
+    </div>
+    <Engagement slug={photo.id} entryType="photo" />
+  </article>
+</BaseLayout>

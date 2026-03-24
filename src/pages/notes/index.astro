@@ -1,0 +1,28 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import { getPublishedCollection } from "../../lib/content";
+
+const notes = await getPublishedCollection("notes");
+---
+
+<BaseLayout title="课程笔记 | Jiangxy Notes" description="整理课程重点、复习方法和 PDF 附件。">
+  <section class="section-block">
+    <div class="section-heading">
+      <h1>课程笔记</h1>
+      <p>适合长期积累的知识，最好用 Markdown 写下来，再配上 PDF 附件。</p>
+    </div>
+    <div class="card-grid">
+      {notes.map((note) => (
+        <PostCard
+          href={`/notes/${note.id}`}
+          eyebrow={note.data.course}
+          title={note.data.title}
+          description={note.data.description}
+          meta={`${note.data.semester} · ${note.data.publishedAt.toLocaleDateString("zh-CN")}`}
+          tags={note.data.tags}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

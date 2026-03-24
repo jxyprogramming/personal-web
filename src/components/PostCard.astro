@@ -1,0 +1,28 @@
+---
+export interface Props {
+  href: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+  meta: string;
+  tags?: string[];
+}
+
+const { href, eyebrow, title, description, meta, tags = [] } = Astro.props;
+---
+
+<article class="card">
+  <p class="eyebrow">{eyebrow}</p>
+  <h3><a href={href}>{title}</a></h3>
+  <p class="card-description">{description}</p>
+  <p class="card-meta">{meta}</p>
+  {
+    tags.length > 0 && (
+      <ul class="tag-list" aria-label="tags">
+        {tags.map((tag) => (
+          <li>{tag}</li>
+        ))}
+      </ul>
+    )
+  }
+</article>

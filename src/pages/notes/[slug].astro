@@ -1,0 +1,41 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Engagement from "../../components/Engagement.astro";
+
+export async function getStaticPaths() {
+  const notes = await getCollection("notes", ({ data }) => !data.draft);
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note }
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+---
+
+<BaseLayout title={`${note.data.title} | 课程笔记`} description={note.data.description}>
+  <article class="article-shell">
+    <p class="eyebrow">{note.data.course}</p>
+    <h1>{note.data.title}</h1>
+    <p class="article-meta">
+      {note.data.semester} · {note.data.publishedAt.toLocaleDateString("zh-CN")}
+    </p>
+    <p class="article-description">{note.data.description}</p>
+
+    {
+      note.data.pdfUrl && (
+        <p class="resource-link">
+          <a href={note.data.pdfUrl} target="_blank" rel="noreferrer">打开 PDF 附件</a>
+        </p>
+      )
+    }
+
+    <div class="article-body">
+      <Content />
+    </div>
+
+    <Engagement slug={note.id} entryType="note" />
+  </article>
+</BaseLayout>

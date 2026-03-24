@@ -1,0 +1,87 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PostCard from "../components/PostCard.astro";
+import { getPublishedCollection } from "../lib/content";
+
+const [notes, posts, photos] = await Promise.all([
+  getPublishedCollection("notes"),
+  getPublishedCollection("posts"),
+  getPublishedCollection("photos")
+]);
+---
+
+<BaseLayout title="Jiangxy Notes" description="课程笔记、生活感想和照片都放在这里。">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Personal Knowledge Garden</p>
+      <h1>把大学生活、课程笔记和路上的风景都认真存起来。</h1>
+      <p class="hero-copy">
+        这是一个用 Astro 搭建的个人网站，用来整理课程笔记、记录随想、收藏照片，也欢迎来访者留言和点赞。
+      </p>
+    </div>
+    <div class="hero-panel">
+      <p>现在收录</p>
+      <ul>
+        <li>{notes.length} 篇课程笔记</li>
+        <li>{posts.length} 篇感想随笔</li>
+        <li>{photos.length} 张照片记录</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>最新课程笔记</h2>
+      <a href="/notes">查看全部</a>
+    </div>
+    <div class="card-grid">
+      {notes.slice(0, 3).map((note) => (
+        <PostCard
+          href={`/notes/${note.id}`}
+          eyebrow={note.data.course}
+          title={note.data.title}
+          description={note.data.description}
+          meta={`${note.data.semester} · ${note.data.publishedAt.toLocaleDateString("zh-CN")}`}
+          tags={note.data.tags}
+        />
+      ))}
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>最近感想</h2>
+      <a href="/posts">查看全部</a>
+    </div>
+    <div class="card-grid">
+      {posts.slice(0, 2).map((post) => (
+        <PostCard
+          href={`/posts/${post.id}`}
+          eyebrow={post.data.mood ?? "随笔"}
+          title={post.data.title}
+          description={post.data.description}
+          meta={post.data.publishedAt.toLocaleDateString("zh-CN")}
+          tags={post.data.tags}
+        />
+      ))}
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <h2>照片墙</h2>
+      <a href="/photos">进入相册</a>
+    </div>
+    <div class="photo-grid">
+      {photos.slice(0, 4).map((photo) => (
+        <a class="photo-card" href={`/photos/${photo.id}`}>
+          <img src={photo.data.image} alt={photo.data.title} loading="lazy" />
+          <div class="photo-card-copy">
+            <strong>{photo.data.title}</strong>
+            <span>{photo.data.location ?? "未知地点"}</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
