@@ -22,6 +22,8 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "";
     <span data-like-count>0 个赞</span>
   </div>
 
+  <p class="hint" data-status></p>
+
   <div class="comments">
     <h2>评论区</h2>
     <form class="comment-form" data-comment-form>
@@ -52,9 +54,15 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "";
 <script>
   import { createClient } from "@supabase/supabase-js";
 
-  const root = document.currentScript?.previousElementSibling as HTMLElement | null;
+  const roots = document.querySelectorAll<HTMLElement>("[data-engagement]");
 
-  if (root instanceof HTMLElement) {
+  roots.forEach((root) => {
+    if (root.dataset.initialized === "true") {
+      return;
+    }
+
+    root.dataset.initialized = "true";
+
     const supabaseUrl = root.dataset.supabaseUrl;
     const supabaseKey = root.dataset.supabaseKey;
     const slug = root.dataset.slug;
@@ -64,128 +72,177 @@ const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "";
     const likeCount = root.querySelector<HTMLElement>("[data-like-count]");
     const commentForm = root.querySelector<HTMLFormElement>("[data-comment-form]");
     const commentList = root.querySelector<HTMLElement>("[data-comment-list]");
+    const status = root.querySelector<HTMLElement>("[data-status]");
+
+    const setStatus = (message: string, isError = false) => {
+      if (!status) {
+        return;
+      }
+
+      status.textContent = message;
+      status.style.color = isError ? "#9a3412" : "";
+    };
 
     if (!supabaseUrl || !supabaseKey || !slug || !entryType) {
+      setStatus("请先配置 PUBLIC_SUPABASE_URL 和 PUBLIC_SUPABASE_ANON_KEY。", true);
       if (commentList) {
-        commentList.innerHTML =
-          "<p class='hint'>请先配置 PUBLIC_SUPABASE_URL 和 PUBLIC_SUPABASE_ANON_KEY。</p>";
+        commentList.innerHTML = "<p class='hint'>环境变量还没有正确注入到前端。</p>";
       }
-    } else {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const visitorStorageKey = "campus-site-visitor-token";
-      let visitorToken = window.localStorage.getItem(visitorStorageKey);
+      return;
+    }
 
-      if (!visitorToken) {
-        visitorToken = crypto.randomUUID();
-        window.localStorage.setItem(visitorStorageKey, visitorToken);
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const visitorStorageKey = "campus-site-visitor-token";
+    let visitorToken = window.localStorage.getItem(visitorStorageKey);
+
+    if (!visitorToken) {
+      visitorToken = crypto.randomUUID();
+      window.localStorage.setItem(visitorStorageKey, visitorToken);
+    }
+
+    const renderComments = async () => {
+      const { data, error } = await supabase
+        .from("site_comments")
+        .select("nickname, content, created_at")
+        .eq("entry_slug", slug)
+        .eq("entry_type", entryType)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Supabase comments query failed:", error);
+        setStatus(`评论读取失败: ${error.message}`, true);
+        if (commentList) {
+          commentList.innerHTML = "<p class='hint'>评论加载失败，请打开浏览器控制台查看具体报错。</p>";
+        }
+        return;
       }
 
-      const renderComments = async () => {
-        const { data, error } = await supabase
-          .from("site_comments")
-          .select("nickname, content, created_at")
-          .eq("entry_slug", slug)
-          .eq("entry_type", entryType)
-          .order("created_at", { ascending: false });
+      if (!commentList) {
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        commentList.innerHTML = "<p class='hint'>还没有评论，来写第一条吧。</p>";
+        return;
+      }
+
+      commentList.innerHTML = data
+        .map((comment) => {
+          const createdAt = new Date(comment.created_at).toLocaleString("zh-CN");
+          return `
+            <article class="comment-item">
+              <div class="comment-head">
+                <strong>${escapeHtml(comment.nickname)}</strong>
+                <time>${createdAt}</time>
+              </div>
+              <p>${escapeHtml(comment.content)}</p>
+            </article>
+          `;
+        })
+        .join("");
+    };
+
+    const renderLikes = async () => {
+      const { count, error } = await supabase
+        .from("site_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("entry_slug", slug)
+        .eq("entry_type", entryType);
+
+      if (error) {
+        console.error("Supabase likes query failed:", error);
+        setStatus(`点赞读取失败: ${error.message}`, true);
+        return;
+      }
+
+      if (likeCount) {
+        likeCount.textContent = `${count ?? 0} 个赞`;
+      }
+    };
+
+    likeButton?.addEventListener("click", async () => {
+      const { data: existing, error: existingError } = await supabase
+        .from("site_likes")
+        .select("id")
+        .eq("entry_slug", slug)
+        .eq("entry_type", entryType)
+        .eq("visitor_token", visitorToken)
+        .maybeSingle();
+
+      if (existingError) {
+        console.error("Supabase like lookup failed:", existingError);
+        setStatus(`点赞失败: ${existingError.message}`, true);
+        return;
+      }
+
+      if (existing?.id) {
+        const { error } = await supabase.from("site_likes").delete().eq("id", existing.id);
 
         if (error) {
-          if (commentList) {
-            commentList.innerHTML = "<p class='hint'>评论加载失败，请检查 Supabase 表和策略。</p>";
-          }
+          console.error("Supabase unlike failed:", error);
+          setStatus(`取消点赞失败: ${error.message}`, true);
           return;
         }
 
-        if (commentList) {
-          if (!data || data.length === 0) {
-            commentList.innerHTML = "<p class='hint'>还没有评论，来写第一条吧。</p>";
-            return;
-          }
-
-          commentList.innerHTML = data
-            .map((comment) => {
-              const createdAt = new Date(comment.created_at).toLocaleString("zh-CN");
-              return `
-                <article class="comment-item">
-                  <div class="comment-head">
-                    <strong>${escapeHtml(comment.nickname)}</strong>
-                    <time>${createdAt}</time>
-                  </div>
-                  <p>${escapeHtml(comment.content)}</p>
-                </article>
-              `;
-            })
-            .join("");
-        }
-      };
-
-      const renderLikes = async () => {
-        const { count } = await supabase
-          .from("site_likes")
-          .select("*", { count: "exact", head: true })
-          .eq("entry_slug", slug)
-          .eq("entry_type", entryType);
-
-        if (likeCount) {
-          likeCount.textContent = `${count ?? 0} 个赞`;
-        }
-      };
-
-      likeButton?.addEventListener("click", async () => {
-        const { data: existing } = await supabase
-          .from("site_likes")
-          .select("id")
-          .eq("entry_slug", slug)
-          .eq("entry_type", entryType)
-          .eq("visitor_token", visitorToken)
-          .maybeSingle();
-
-        if (existing?.id) {
-          await supabase.from("site_likes").delete().eq("id", existing.id);
-          likeButton.textContent = "点赞";
-        } else {
-          await supabase.from("site_likes").insert({
-            entry_slug: slug,
-            entry_type: entryType,
-            visitor_token: visitorToken
-          });
-          likeButton.textContent = "已点赞";
-        }
-
-        await renderLikes();
-      });
-
-      commentForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        if (!commentForm) {
-          return;
-        }
-
-        const formData = new FormData(commentForm);
-        const nickname = String(formData.get("nickname") ?? "").trim();
-        const content = String(formData.get("content") ?? "").trim();
-
-        if (!nickname || !content) {
-          return;
-        }
-
-        const { error } = await supabase.from("site_comments").insert({
+        likeButton.textContent = "点赞";
+        setStatus("已取消点赞。");
+      } else {
+        const { error } = await supabase.from("site_likes").insert({
           entry_slug: slug,
           entry_type: entryType,
-          nickname,
-          content
+          visitor_token: visitorToken
         });
 
-        if (!error) {
-          commentForm.reset();
-          await renderComments();
+        if (error) {
+          console.error("Supabase like insert failed:", error);
+          setStatus(`点赞失败: ${error.message}`, true);
+          return;
         }
+
+        likeButton.textContent = "已点赞";
+        setStatus("点赞成功。");
+      }
+
+      await renderLikes();
+    });
+
+    commentForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!commentForm) {
+        return;
+      }
+
+      const formData = new FormData(commentForm);
+      const nickname = String(formData.get("nickname") ?? "").trim();
+      const content = String(formData.get("content") ?? "").trim();
+
+      if (!nickname || !content) {
+        setStatus("昵称和评论内容都不能为空。", true);
+        return;
+      }
+
+      const { error } = await supabase.from("site_comments").insert({
+        entry_slug: slug,
+        entry_type: entryType,
+        nickname,
+        content
       });
 
-      renderLikes();
-      renderComments();
-    }
-  }
+      if (error) {
+        console.error("Supabase comment insert failed:", error);
+        setStatus(`评论发布失败: ${error.message}`, true);
+        return;
+      }
+
+      commentForm.reset();
+      setStatus("评论发布成功。");
+      await renderComments();
+    });
+
+    renderLikes();
+    renderComments();
+  });
 
   function escapeHtml(value: string) {
     return value
