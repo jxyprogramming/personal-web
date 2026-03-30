@@ -535,3 +535,32 @@ img {
   box-shadow: 0 20px 40px rgba(31, 26, 23, 0.12);
   background: white;
 }
+
+.article-body .katex {
+  font-size: 1.04em;
+}
+
+.article-body .katex-display {
+  margin: 1.35rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.35rem 0.15rem;
+}
+
+.article-body .katex-display > .katex {
+  white-space: nowrap;
+}
+
+.article-body p:has(> .katex-display) {
+  margin: 1.4rem 0;
+}
+
+.article-body p > .katex-display:first-child:last-child {
+  display: block;
+}
+
+.article-body .katex-display {
+  display: block;
+  text-align: center;
+  line-height: 1.9;
+}

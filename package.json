@@ -15,7 +15,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
     "astro": "^6.0.0",
-    "pdfjs-dist": "^5.6.205"
+    "katex": "^0.16.44",
+    "pdfjs-dist": "^5.6.205",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
