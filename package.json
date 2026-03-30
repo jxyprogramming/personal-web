@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
-    "astro": "^6.0.0"
+    "astro": "^6.0.0",
+    "pdfjs-dist": "^5.6.205"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",

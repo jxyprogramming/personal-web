@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Engagement from "../../components/Engagement.astro";
+import PdfPreview from "../../components/PdfPreview.astro";
 
 export async function getStaticPaths() {
   const notes = await getCollection("notes", ({ data }) => !data.draft);
@@ -24,13 +25,7 @@ const { Content } = await render(note);
     </p>
     <p class="article-description">{note.data.description}</p>
 
-    {
-      note.data.pdfUrl && (
-        <p class="resource-link">
-          <a href={note.data.pdfUrl} target="_blank" rel="noreferrer">打开 PDF 附件</a>
-        </p>
-      )
-    }
+    {note.data.pdfUrl && <PdfPreview pdfUrl={note.data.pdfUrl} title="笔记附件预览" />}
 
     <div class="article-body">
       <Content />

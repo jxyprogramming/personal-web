@@ -1,0 +1,187 @@
+---
+export interface Props {
+  pdfUrl: string;
+  title?: string;
+}
+
+const { pdfUrl, title = "PDF 预览" } = Astro.props;
+---
+
+<section class="pdf-viewer" data-pdf-viewer data-pdf-url={pdfUrl}>
+  <div class="pdf-viewer-head">
+    <div>
+      <p class="eyebrow">PDF Preview</p>
+      <h2>{title}</h2>
+    </div>
+    <a class="pdf-open-link" href={pdfUrl} target="_blank" rel="noreferrer">在新标签页打开</a>
+  </div>
+
+  <div class="pdf-viewer-toolbar">
+    <button type="button" class="pdf-nav-button" data-pdf-prev aria-label="上一页">←</button>
+    <label class="pdf-page-jump">
+      <span>页码</span>
+      <input type="number" min="1" step="1" value="1" data-pdf-page-input />
+    </label>
+    <span class="pdf-page-status" data-pdf-page-status>加载中...</span>
+    <button type="button" class="pdf-nav-button" data-pdf-next aria-label="下一页">→</button>
+  </div>
+
+  <div class="pdf-canvas-shell" data-pdf-canvas-shell>
+    <canvas data-pdf-canvas></canvas>
+  </div>
+</section>
+
+<script>
+  import { GlobalWorkerOptions, getDocument } from "pdfjs-dist/build/pdf.mjs";
+  import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
+  GlobalWorkerOptions.workerSrc = workerUrl;
+
+  const viewers = document.querySelectorAll<HTMLElement>("[data-pdf-viewer]");
+
+  viewers.forEach((viewer) => {
+    if (viewer.dataset.initialized === "true") {
+      return;
+    }
+
+    viewer.dataset.initialized = "true";
+
+    const pdfUrl = viewer.dataset.pdfUrl;
+    const prevButton = viewer.querySelector<HTMLButtonElement>("[data-pdf-prev]");
+    const nextButton = viewer.querySelector<HTMLButtonElement>("[data-pdf-next]");
+    const pageInput = viewer.querySelector<HTMLInputElement>("[data-pdf-page-input]");
+    const pageStatus = viewer.querySelector<HTMLElement>("[data-pdf-page-status]");
+    const canvasShell = viewer.querySelector<HTMLElement>("[data-pdf-canvas-shell]");
+    const canvas = viewer.querySelector<HTMLCanvasElement>("[data-pdf-canvas]");
+
+    if (!pdfUrl || !pageInput || !pageStatus || !canvasShell || !canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      pageStatus.textContent = "浏览器不支持 PDF 预览。";
+      return;
+    }
+
+    let pdfDoc: any = null;
+    let currentPage = 1;
+    let totalPages = 1;
+    let rendering = false;
+    let queuedPage: number | null = null;
+
+    const updateControls = () => {
+      pageInput.value = String(currentPage);
+      pageInput.max = String(totalPages);
+      pageStatus.textContent = `第 ${currentPage} / ${totalPages} 页`;
+
+      if (prevButton) {
+        prevButton.disabled = currentPage <= 1 || rendering;
+      }
+
+      if (nextButton) {
+        nextButton.disabled = currentPage >= totalPages || rendering;
+      }
+
+      pageInput.disabled = rendering;
+    };
+
+    const renderPage = async (pageNumber: number) => {
+      if (!pdfDoc) {
+        return;
+      }
+
+      rendering = true;
+      currentPage = pageNumber;
+      pageStatus.textContent = `正在渲染第 ${pageNumber} 页...`;
+      updateControls();
+
+      const page = await pdfDoc.getPage(pageNumber);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const availableWidth = Math.max(canvasShell.clientWidth - 32, 260);
+      const scale = Math.max(0.8, Math.min(2, availableWidth / baseViewport.width));
+      const viewport = page.getViewport({ scale });
+      const ratio = window.devicePixelRatio || 1;
+
+      canvas.width = Math.floor(viewport.width * ratio);
+      canvas.height = Math.floor(viewport.height * ratio);
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
+
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      context.clearRect(0, 0, viewport.width, viewport.height);
+
+      await page.render({
+        canvasContext: context,
+        viewport
+      }).promise;
+
+      rendering = false;
+      updateControls();
+
+      if (queuedPage && queuedPage !== currentPage) {
+        const nextQueuedPage = queuedPage;
+        queuedPage = null;
+        await renderPage(nextQueuedPage);
+      }
+    };
+
+    const queueRender = async (pageNumber: number) => {
+      const safePage = Math.min(Math.max(pageNumber, 1), totalPages);
+
+      if (rendering) {
+        queuedPage = safePage;
+        return;
+      }
+
+      await renderPage(safePage);
+    };
+
+    const boot = async () => {
+      try {
+        pageStatus.textContent = "正在加载 PDF...";
+        const loadingTask = getDocument(pdfUrl);
+        pdfDoc = await loadingTask.promise;
+        totalPages = pdfDoc.numPages;
+        await renderPage(1);
+      } catch (error) {
+        console.error("PDF preview failed:", error);
+        pageStatus.textContent = "PDF 加载失败，请检查链接或跨域设置。";
+      }
+    };
+
+    prevButton?.addEventListener("click", () => {
+      queueRender(currentPage - 1);
+    });
+
+    nextButton?.addEventListener("click", () => {
+      queueRender(currentPage + 1);
+    });
+
+    pageInput.addEventListener("change", () => {
+      const targetPage = Number(pageInput.value);
+
+      if (Number.isNaN(targetPage)) {
+        pageInput.value = String(currentPage);
+        return;
+      }
+
+      queueRender(targetPage);
+    });
+
+    let resizeTimer = 0;
+    window.addEventListener("resize", () => {
+      if (!pdfDoc) {
+        return;
+      }
+
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        queueRender(currentPage);
+      }, 120);
+    });
+
+    boot();
+  });
+</script>

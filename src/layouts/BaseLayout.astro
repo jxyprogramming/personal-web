@@ -27,9 +27,9 @@ const {
   <body>
     <div class="page-shell">
       <header class="site-header">
-        <a class="brand" href="/">半亩方塘</a>
+        <a class="brand" href="/">JiangXy's Notes</a>
         <nav class="site-nav">
-          <a href="/notes">学而时习</a>
+          <a href="/notes">学习笔记</a>
           <a href="/posts">随笔</a>
           <a href="/photos">相册</a>
         </nav>
@@ -41,5 +41,62 @@ const {
         <p>问渠那得清如许，为有源头活水来。</p>
       </footer>
     </div>
+
+    <script>
+      const initCodeBlocks = () => {
+        const blocks = document.querySelectorAll("pre.astro-code");
+
+        blocks.forEach((block) => {
+          if (!(block instanceof HTMLElement) || block.dataset.enhanced === "true") {
+            return;
+          }
+
+          block.dataset.enhanced = "true";
+
+          const language = (block.dataset.language || "code").toLowerCase();
+          const wrapper = document.createElement("div");
+          wrapper.className = "code-block-shell";
+
+          const toolbar = document.createElement("div");
+          toolbar.className = "code-block-toolbar";
+
+          const badge = document.createElement("span");
+          badge.className = "code-block-language";
+          badge.textContent = language;
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "code-block-copy";
+          button.textContent = "复制";
+
+          button.addEventListener("click", async () => {
+            const text = block.textContent ?? "";
+
+            try {
+              await navigator.clipboard.writeText(text);
+              button.textContent = "已复制";
+              window.setTimeout(() => {
+                button.textContent = "复制";
+              }, 1600);
+            } catch {
+              button.textContent = "复制失败";
+              window.setTimeout(() => {
+                button.textContent = "复制";
+              }, 1600);
+            }
+          });
+
+          toolbar.append(badge, button);
+          block.parentNode?.insertBefore(wrapper, block);
+          wrapper.append(toolbar, block);
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initCodeBlocks);
+      } else {
+        initCodeBlocks();
+      }
+    </script>
   </body>
 </html>

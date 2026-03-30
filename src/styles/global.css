@@ -8,6 +8,11 @@
   --accent: #bf5b3d;
   --accent-dark: #933d26;
   --shadow: 0 18px 42px rgba(77, 48, 30, 0.12);
+  --code-bg: #fff3ea;
+  --code-surface: #1e1e1e;
+  --code-border: rgba(31, 26, 23, 0.14);
+  --code-text: #d4d4d4;
+  --mono: "SFMono-Regular", "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", "Liberation Mono", monospace;
 }
 
 * {
@@ -225,6 +230,99 @@ img {
   padding-left: 1.2rem;
 }
 
+.article-body code,
+.comment-form input,
+.comment-form textarea {
+  font-family: var(--mono);
+}
+
+.article-body :not(pre) > code {
+  background: var(--code-bg);
+  color: var(--accent-dark);
+  border: 1px solid rgba(191, 91, 61, 0.16);
+  border-radius: 10px;
+  padding: 0.16rem 0.4rem;
+  font-size: 0.92em;
+}
+
+.code-block-shell {
+  margin: 1.5rem 0;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
+}
+
+.code-block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  background: #151515;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.code-block-language,
+.code-block-copy {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.code-block-language {
+  color: #d4d4d4;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+
+.code-block-copy {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3f4f6;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+}
+
+.code-block-copy:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.article-body pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 0;
+  border: 0;
+  background: var(--code-surface);
+  box-shadow: none;
+  overflow-x: auto;
+}
+
+.article-body pre code {
+  display: block;
+  color: var(--code-text);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  white-space: pre;
+}
+
+.article-body pre code span {
+  font-family: var(--mono);
+}
+
+.article-body pre::-webkit-scrollbar {
+  height: 10px;
+}
+
+.article-body pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
 .resource-link {
   margin: 1rem 0 1.5rem;
 }
@@ -269,7 +367,6 @@ img {
   border-radius: 16px;
   padding: 0.85rem 1rem;
   background: var(--bg-soft);
-  font: inherit;
   color: var(--text);
 }
 
@@ -348,4 +445,93 @@ img {
     align-items: start;
     flex-direction: column;
   }
+}
+
+.pdf-viewer {
+  margin: 1.6rem 0 2rem;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 244, 0.72);
+  overflow: hidden;
+}
+
+.pdf-viewer-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem 0.9rem;
+}
+
+.pdf-viewer-head h2 {
+  margin: 0.25rem 0 0;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 1.3rem;
+}
+
+.pdf-open-link {
+  color: var(--accent-dark);
+}
+
+.pdf-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0 1.2rem 1rem;
+}
+
+.pdf-nav-button {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pdf-nav-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pdf-page-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+}
+
+.pdf-page-jump input {
+  width: 5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+}
+
+.pdf-page-status {
+  color: var(--muted);
+}
+
+.pdf-canvas-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 16rem;
+  padding: 0 1.2rem 1.25rem;
+  background: linear-gradient(180deg, rgba(147, 61, 38, 0.04), rgba(0, 0, 0, 0));
+}
+
+.pdf-canvas-shell canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(31, 26, 23, 0.08);
+  box-shadow: 0 20px 40px rgba(31, 26, 23, 0.12);
+  background: white;
 }

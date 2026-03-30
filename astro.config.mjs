@@ -4,7 +4,7 @@ export default defineConfig({
   site: "https://example.pages.dev",
   markdown: {
     shikiConfig: {
-      theme: "github-light"
+      theme: "dark-plus"
     }
   }
 });
