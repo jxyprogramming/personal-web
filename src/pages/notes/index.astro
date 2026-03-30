@@ -6,11 +6,11 @@ import { getPublishedCollection } from "../../lib/content";
 const notes = await getPublishedCollection("notes");
 ---
 
-<BaseLayout title="课程笔记 | Jiangxy Notes" description="整理课程重点、复习方法和 PDF 附件。">
+<BaseLayout title="学而时习 | Jiangxy Notes" description="整理课程笔记和学习探讨。">
   <section class="section-block">
     <div class="section-heading">
-      <h1>课程笔记</h1>
-      <p>适合长期积累的知识，最好用 Markdown 写下来，再配上 PDF 附件。</p>
+      <h1>学习笔记</h1>
+      <p>这里有课程笔记和学习讨论。</p>
     </div>
     <div class="card-grid">
       {notes.map((note) => (

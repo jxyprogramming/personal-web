@@ -14,15 +14,15 @@ const [notes, posts, photos] = await Promise.all([
   <section class="hero">
     <div>
       <p class="eyebrow">Personal Knowledge Garden</p>
-      <h1>把大学生活、课程笔记和路上的风景都认真存起来。</h1>
+      <h1>书写即是遗忘，但也是记住的尝试。</h1>
       <p class="hero-copy">
-        这是一个用 Astro 搭建的个人网站，用来整理课程笔记、记录随想、收藏照片，也欢迎来访者留言和点赞。
+        欢迎来访！这里有书、有话、有光景。
       </p>
     </div>
     <div class="hero-panel">
       <p>现在收录</p>
       <ul>
-        <li>{notes.length} 篇课程笔记</li>
+        <li>{notes.length} 篇学习笔记</li>
         <li>{posts.length} 篇感想随笔</li>
         <li>{photos.length} 张照片记录</li>
       </ul>
@@ -31,7 +31,7 @@ const [notes, posts, photos] = await Promise.all([
 
   <section class="section-block">
     <div class="section-heading">
-      <h2>最新课程笔记</h2>
+      <h2>最新学习笔记</h2>
       <a href="/notes">查看全部</a>
     </div>
     <div class="card-grid">
