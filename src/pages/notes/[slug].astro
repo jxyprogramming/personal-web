@@ -16,7 +16,7 @@ const { note } = Astro.props;
 const { Content } = await render(note);
 ---
 
-<BaseLayout title={`${note.data.title} | 课程笔记`} description={note.data.description}>
+<BaseLayout title={`${note.data.title} | 学习笔记`} description={note.data.description}>
   <article class="article-shell">
     <p class="eyebrow">{note.data.course}</p>
     <h1>{note.data.title}</h1>
